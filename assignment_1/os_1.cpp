@@ -462,12 +462,19 @@ void printTable(Process p[], int n)
 // PRINT SIMPLE GANTT CHART
 ////////////////////////////////////////////////////////
 
-void printGantt(int order[], int size)
+void printGantt(int order[], int time[], int size)
 {
-    cout<<"|";
+    cout<<"\nGantt Chart\n";
 
+    // Print timeline
+    for(int i=0;i<=size;i++)
+    cout<<time[i]<<"\t";
+
+    cout<<endl;
+
+    // Print process blocks
     for(int i=0;i<size;i++)
-    cout<<" P"<<order[i]<<" |";
+    cout<<"|P"<<order[i]<<"|";
 
     cout<<endl;
 }
