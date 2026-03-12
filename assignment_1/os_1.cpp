@@ -3,9 +3,8 @@ using namespace std;
 
 #define MAX 10   // maximum number of processes
 
-//------------------------------------------------------
 // Structure to store process information
-//------------------------------------------------------
+
 struct Process
 {
     int pid;    // Process ID
@@ -18,9 +17,8 @@ struct Process
     int pr;     // Priority
 };
 
-//------------------------------------------------------
 // Function declarations
-//------------------------------------------------------
+
 void printTable(Process p[], int n);          // prints final process table
 void printGantt(int order[], int timeline[], int size); // prints gantt chart
 
@@ -31,9 +29,8 @@ void RoundRobin(Process p[], int n, int tq);
 void Priority_NP(Process p[], int n);
 void Priority_P(Process p[], int n);
 
-//------------------------------------------------------
 // MAIN FUNCTION
-//------------------------------------------------------
+
 int main()
 {
     int n, choice, tq;
@@ -113,9 +110,8 @@ int main()
     return 0;
 }
 
-//------------------------------------------------------
 // FUNCTION TO PRINT PROCESS TABLE
-//------------------------------------------------------
+
 void printTable(Process p[], int n)
 {
     float totalWT = 0, totalTAT = 0;
@@ -140,9 +136,8 @@ void printTable(Process p[], int n)
     cout << "\nAverage Turnaround Time = " << totalTAT / n << endl;
 }
 
-//------------------------------------------------------
 // FUNCTION TO PRINT GANTT CHART
-//------------------------------------------------------
+
 void printGantt(int order[], int timeline[], int size)
 {
     cout << "\nGantt Chart\n";
@@ -160,9 +155,8 @@ void printGantt(int order[], int timeline[], int size)
     cout << endl;
 }
 
-//------------------------------------------------------
 // FCFS SCHEDULING
-//------------------------------------------------------
+
 void FCFS(Process p[], int n)
 {
     int time = 0;
@@ -195,9 +189,8 @@ void FCFS(Process p[], int n)
     printTable(p, n);
 }
 
-//------------------------------------------------------
 // SJF NON PREEMPTIVE
-//------------------------------------------------------
+
 void SJF_NP(Process p[], int n)
 {
     int time = 0, completed = 0;
@@ -247,9 +240,8 @@ void SJF_NP(Process p[], int n)
     printTable(p, n);
 }
 
-//------------------------------------------------------
 // SJF PREEMPTIVE (Shortest Remaining Time First)
-//------------------------------------------------------
+
 void SJF_P(Process p[], int n)
 {
     int time = 0, completed = 0;
@@ -300,9 +292,8 @@ void SJF_P(Process p[], int n)
     printTable(p, n);
 }
 
-//------------------------------------------------------
 // ROUND ROBIN SCHEDULING
-//------------------------------------------------------
+
 void RoundRobin(Process p[], int n, int tq)
 {
     int time = 0, completed = 0;
@@ -407,9 +398,8 @@ void Priority_NP(Process p[], int n)
     printTable(p, n);
 }
 
-//------------------------------------------------------
 // PRIORITY PREEMPTIVE
-//------------------------------------------------------
+
 void Priority_P(Process p[], int n)
 {
     int time = 0, completed = 0;
