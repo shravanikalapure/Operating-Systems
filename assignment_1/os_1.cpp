@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 using namespace std;
 
 #define MAX 10   // maximum number of processes
@@ -15,6 +16,7 @@ struct Process
     int wt;     // Waiting Time
     int tat;    // Turnaround Time
     int pr;     // Priority
+
 };
 
 // Function declarations
@@ -140,21 +142,28 @@ void printTable(Process p[], int n)
 
 void printGantt(int order[], int timeline[], int size)
 {
-    cout << "\nGantt Chart\n";
+    cout << "\nGantt Chart\n\n";
 
-    // print timeline
+    // Top bar
+    for (int i = 0; i < size; i++)
+        cout << "--------";
+    cout << "-\n";
+
+    // Process IDs
+    for (int i = 0; i < size; i++)
+        cout << "|  P" << order[i] << "  ";
+    cout << "|\n";
+
+    // Bottom bar
+    for (int i = 0; i < size; i++)
+        cout << "--------";
+    cout << "-\n";
+
+    // Timeline
     for (int i = 0; i <= size; i++)
         cout << timeline[i] << "\t";
-
-    cout << endl;
-
-    // print processes
-    for (int i = 0; i < size; i++)
-        cout << "|P" << order[i] << "|";
-
     cout << endl;
 }
-
 // FCFS SCHEDULING
 
 void FCFS(Process p[], int n)
