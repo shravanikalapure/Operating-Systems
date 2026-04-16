@@ -114,6 +114,7 @@ int getPositiveInteger(string message)
 }
 
     ///FCFS Function
+    //Sort by arrival time, Execute one by one, No interruption
     Result FCFS(vector<Process>process){
         vector<int> gantt;
         //Sorting based on arrival time
@@ -139,7 +140,7 @@ int getPositiveInteger(string message)
    
 }
 Result SJF_Preemptive(vector<Process>process){
-     vector<int> gantt;
+    vector<int> gantt;
       for(int i = 0; i < process.size(); i++)
         process[i].remaining_time = process[i].burst_time;
     int current_time = 0;
@@ -159,7 +160,7 @@ Result SJF_Preemptive(vector<Process>process){
         }
         if(idx != -1){ //There is a process to execute(With min burst time)
            //Execute for 1 unit of time
-           gantt.push_back(process[idx].pid);
+            gantt.push_back(process[idx].pid); //Only 1 unit execution, Then again selection happens, THIS is preemption
             process[idx].remaining_time--; //Decrement the remaining time of the process
             current_time++;
             if(process[idx].remaining_time == 0){ //If the process is completed
@@ -179,8 +180,8 @@ Result SJF_Preemptive(vector<Process>process){
 printGantt(gantt);
     return display(process, "SJF_Preemptive");
 }
-Result SJF_NonPreemptive(vector<Process>process){
-     vector<int> gantt;
+Result SJF_NonPreemptive(vector<Process>process){           //Pick process with smallest burst time. Run completely
+    vector<int> gantt;
     int current_time = 0;
     int completed = 0;
     vector<bool> is_completed(process.size(),false); //To keep track of completed processes
