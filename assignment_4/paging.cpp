@@ -1,44 +1,39 @@
 #include <iostream>
 #include <vector>
-#include <queue>
-#include <set>
 #include <unordered_map>
+#include <algorithm>
 #include <iomanip>
-#include <climits>
-#include <string>
 using namespace std;
 
 /*
-    Prints horizontal line for box table
+    Prints horizontal line for table
 */
 void printLine(int cols) {
-    for (int i = 0; i < cols; i++)   // loop for number of columns
-        cout << "--------";          // print fixed width line
-    cout << "\n";                   // move to next line
+    for (int i = 0; i < cols; i++)
+        cout << "--------";
+    cout << "\n";
 }
 
 /*
     Prints table in box format
 */
 void printTable(vector<vector<int>> &table, vector<int> &pages, vector<bool> &fault) {
-    int frames = table.size();      // number of rows (frames)
-    int n = pages.size();           // number of columns (pages)
+    int frames = table.size();
+    int n = pages.size();
 
-    printLine(n + 1);               // top border
+    printLine(n + 1);
 
-    // Print reference string row
     cout << "|Ref  |";
     for (int i = 0; i < n; i++)
-        cout << setw(5) << pages[i] << " |";  // setw aligns output
+        cout << setw(5) << pages[i] << " |";
     cout << "\n";
 
     printLine(n + 1);
 
-    // Print frame rows
     for (int i = 0; i < frames; i++) {
-        cout << "|F" << i+1 << "   |";   // frame label
+        cout << "|F" << i+1 << "   |";
         for (int j = 0; j < n; j++) {
-            if (table[i][j] == -1)       // -1 means empty
+            if (table[i][j] == -1)
                 cout << setw(5) << "-" << " |";
             else
                 cout << setw(5) << table[i][j] << " |";
@@ -48,248 +43,233 @@ void printTable(vector<vector<int>> &table, vector<int> &pages, vector<bool> &fa
 
     printLine(n + 1);
 
-    // Print fault row
     cout << "|Flt  |";
     for (int i = 0; i < n; i++) {
-        if (fault[i]) cout << setw(5) << "F" << " |";  // F means fault
-        else cout << setw(5) << " " << " |";           // blank means hit
+        if (fault[i]) cout << setw(5) << "F" << " |";
+        else cout << setw(5) << " " << " |";
     }
     cout << "\n";
 
     printLine(n + 1);
 }
 
-/*
-    FIFO Algorithm
-*/
-int FIFO(vector<int> pages, int capacity) {
-    int n = pages.size();   // total pages
-    vector<vector<int>> table(capacity, vector<int>(n, -1)); // table initialized with -1
-    vector<bool> fault(n, false); // track faults
+// ---------------- FIFO ----------------
+int FIFO(vector<int> pages, int frame_count) {
 
-    queue<int> q;  // stores order of pages (FIFO)
-    set<int> s;    // quick lookup if page exists
+    vector<int> frames(frame_count, -1);   // fixed positions
+    vector<vector<int>> table(frame_count, vector<int>(pages.size(), -1));
+    vector<bool> fault(pages.size(), false);
+
     int faults = 0;
+    int index = 0; // circular replacement
 
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < pages.size(); i++) {
+        int page = pages[i];
+        bool found = false;
 
-        // If page not present → page fault
-        if (s.find(pages[i]) == s.end()) {
+        // check hit
+        for (int f : frames) {
+            if (f == page) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            frames[index] = page;               // replace FIXED position
+            index = (index + 1) % frame_count; // circular move
             faults++;
             fault[i] = true;
-
-            // If memory full → remove oldest page
-            if (q.size() == capacity) {
-                s.erase(q.front()); // remove from set
-                q.pop();            // remove from queue
-            }
-
-            q.push(pages[i]); // insert new page
-            s.insert(pages[i]);
         }
 
-        // Copy queue to table for display
-        queue<int> temp = q;   // copy queue
-        vector<int> curr;
-
-        while (!temp.empty()) {
-            curr.push_back(temp.front()); // store elements
-            temp.pop();
-        }
-
-        // Fill table column
-        for (int j = 0; j < curr.size(); j++)
-            table[j][i] = curr[j];
-
-        // Fill remaining with previous column values
-        for (int j = curr.size(); j < capacity; j++) {
-            if (i > 0)
-                table[j][i] = table[j][i-1];
+        // store snapshot (IMPORTANT)
+        for (int j = 0; j < frame_count; j++) {
+            table[j][i] = frames[j];
         }
     }
 
-    cout << "\n=== FIFO (FCFS) ===\n";
+    cout << "\n=== FIFO ===\n";
     printTable(table, pages, fault);
-
-    int hits = n - faults; // hits = total - faults
-
-    cout << "Total Faults = " << faults << "\n";
-    cout << "Total Hits = " << hits << "\n";
-    cout << "Hit Rate = " << (double)hits/n << "\n";
-    cout << "Miss Rate = " << (double)faults/n << "\n";
 
     return faults;
 }
 
-/*
-    LRU Algorithm
-*/
-int LRU(vector<int> pages, int capacity) {
-    int n = pages.size();
-    vector<vector<int>> table(capacity, vector<int>(n, -1));
-    vector<bool> fault(n, false);
+// ---------------- LRU ----------------
+int LRU(vector<int> pages, int frame_count) {
 
-    vector<int> frames;  // stores pages in memory
-    unordered_map<int, int> lastUsed; // stores last used index
+    vector<int> frames(frame_count, -1);
+    vector<vector<int>> table(frame_count, vector<int>(pages.size(), -1));
+    vector<bool> fault(pages.size(), false);
+
+    unordered_map<int, int> recent;
     int faults = 0;
 
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < pages.size(); i++) {
+        int page = pages[i];
+        bool found = false;
 
-        // If page not found → fault
-        if (find(frames.begin(), frames.end(), pages[i]) == frames.end()) {
+        for (int f : frames) {
+            if (f == page) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
             faults++;
             fault[i] = true;
 
-            // If full → remove least recently used
-            if (frames.size() == capacity) {
-                int lru = frames[0];
+            int emptyIndex = -1;
 
-                // Find page with smallest last used index
-                for (int x : frames) {
-                    if (lastUsed[x] < lastUsed[lru])
-                        lru = x;
+            // find empty frame
+            for (int j = 0; j < frame_count; j++) {
+                if (frames[j] == -1) {
+                    emptyIndex = j;
+                    break;
                 }
-
-                // Remove LRU page
-                frames.erase(find(frames.begin(), frames.end(), lru));
             }
 
-            frames.push_back(pages[i]); // insert new page
+            if (emptyIndex != -1) {
+                frames[emptyIndex] = page;
+            } else {
+                int lruIndex = 0;
+                int minRecent = recent[frames[0]];
+
+                for (int j = 1; j < frame_count; j++) {
+                    if (recent[frames[j]] < minRecent) {
+                        minRecent = recent[frames[j]];
+                        lruIndex = j;
+                    }
+                }
+
+                frames[lruIndex] = page; // replace SAME position
+            }
         }
 
-        lastUsed[pages[i]] = i; // update last used time
+        recent[page] = i;
 
-        // Store in table
-        for (int j = 0; j < frames.size(); j++)
+        // store snapshot
+        for (int j = 0; j < frame_count; j++) {
             table[j][i] = frames[j];
-
-        for (int j = frames.size(); j < capacity; j++) {
-            if (i > 0)
-                table[j][i] = table[j][i-1];
         }
     }
 
     cout << "\n=== LRU ===\n";
     printTable(table, pages, fault);
 
-    int hits = n - faults;
-
-    cout << "Total Faults = " << faults << "\n";
-    cout << "Total Hits = " << hits << "\n";
-    cout << "Hit Rate = " << (double)hits/n << "\n";
-    cout << "Miss Rate = " << (double)faults/n << "\n";
-
     return faults;
 }
 
-/*
-    OPTIMAL Algorithm
-*/
-int OPTIMAL(vector<int> pages, int capacity) {
-    int n = pages.size();
-    vector<vector<int>> table(capacity, vector<int>(n, -1));
-    vector<bool> fault(n, false);
+// ---------------- OPTIMAL ----------------
+int OPTIMAL(vector<int> pages, int frame_count) {
 
-    vector<int> frames;
+    vector<int> frames(frame_count, -1);
+    vector<vector<int>> table(frame_count, vector<int>(pages.size(), -1));
+    vector<bool> fault(pages.size(), false);
+
     int faults = 0;
 
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < pages.size(); i++) {
+        int page = pages[i];
+        bool found = false;
 
-        // If page not present → fault
-        if (find(frames.begin(), frames.end(), pages[i]) == frames.end()) {
-            faults++;
-            fault[i] = true;
-
-            // If full → find optimal page to replace
-            if (frames.size() == capacity) {
-                int index = -1, farthest = i;
-
-                // Check future usage
-                for (int j = 0; j < frames.size(); j++) {
-                    int k;
-
-                    for (k = i+1; k < n; k++) {
-                        if (frames[j] == pages[k]) {
-                            if (k > farthest) {
-                                farthest = k;
-                                index = j;
-                            }
-                            break;
-                        }
-                    }
-
-                    // If page not used again → best to replace
-                    if (k == n) {
-                        index = j;
-                        break;
-                    }
-                }
-
-                frames[index] = pages[i]; // replace
-            } else {
-                frames.push_back(pages[i]); // add if space
+        for (int f : frames) {
+            if (f == page) {
+                found = true;
+                break;
             }
         }
 
-        // Store state in table
-        for (int j = 0; j < frames.size(); j++)
-            table[j][i] = frames[j];
+        if (!found) {
+            faults++;
+            fault[i] = true;
 
-        for (int j = frames.size(); j < capacity; j++) {
-            if (i > 0)
-                table[j][i] = table[j][i-1];
+            int emptyIndex = -1;
+
+            for (int j = 0; j < frame_count; j++) {
+                if (frames[j] == -1) {
+                    emptyIndex = j;
+                    break;
+                }
+            }
+
+            if (emptyIndex != -1) {
+                frames[emptyIndex] = page;
+            } else {
+                int farthest = -1;
+                int replaceIndex = -1;
+
+                for (int j = 0; j < frame_count; j++) {
+                    int k;
+                    for (k = i + 1; k < pages.size(); k++) {
+                        if (frames[j] == pages[k])
+                            break;
+                    }
+
+                    if (k > farthest) {
+                        farthest = k;
+                        replaceIndex = j;
+                    }
+                }
+
+                frames[replaceIndex] = page; // SAME position replace
+            }
+        }
+
+        // store snapshot
+        for (int j = 0; j < frame_count; j++) {
+            table[j][i] = frames[j];
         }
     }
 
     cout << "\n=== OPTIMAL ===\n";
     printTable(table, pages, fault);
 
-    int hits = n - faults;
-
-    cout << "Total Faults = " << faults << "\n";
-    cout << "Total Hits = " << hits << "\n";
-    cout << "Hit Rate = " << (double)hits/n << "\n";
-    cout << "Miss Rate = " << (double)faults/n << "\n";
-
     return faults;
 }
 
-/*
-    MAIN FUNCTION
-*/
 int main() {
     int n, frames;
 
     cout << "Enter number of pages: ";
-    cin >> n;   // user inputs total pages
+    cin >> n;
 
     vector<int> pages(n);
     cout << "Enter reference string:\n";
     for (int i = 0; i < n; i++)
-        cin >> pages[i];   // input pages
+        cin >> pages[i];
 
     cout << "Enter number of frames: ";
     cin >> frames;
 
-    // Run all algorithms
+    // Run all algorithms and store faults
     int f1 = FIFO(pages, frames);
     int f2 = LRU(pages, frames);
     int f3 = OPTIMAL(pages, frames);
 
-    // Comparison
-    cout << "\n===== FINAL COMPARISON =====\n";
-    cout << "FIFO Faults: " << f1 << "\n";
-    cout << "LRU Faults: " << f2 << "\n";
-    cout << "OPTIMAL Faults: " << f3 << "\n";
+    // ---------------- COMPARISON TABLE ----------------
+    cout << "\n===== COMPARISON TABLE =====\n";
 
-    int best = min({f1, f2, f3}); // find minimum faults
+    cout << "---------------------------------\n";
+    cout << "| Algorithm | Page Faults |\n";
+    cout << "---------------------------------\n";
 
+    cout << "| FIFO      | " << setw(11) << f1 << " |\n";
+    cout << "| LRU       | " << setw(11) << f2 << " |\n";
+    cout << "| OPTIMAL   | " << setw(11) << f3 << " |\n";
+
+    cout << "---------------------------------\n";
+
+    // Best algorithm
+    int best = min({f1, f2, f3});
+
+    cout << "\nBest Algorithm: ";
     if (best == f3)
-        cout << "Conclusion: OPTIMAL is best\n";
+        cout << "OPTIMAL (Minimum Page Faults)\n";
     else if (best == f2)
-        cout << "Conclusion: LRU is best\n";
+        cout << "LRU (Minimum Page Faults)\n";
     else
-        cout << "Conclusion: FIFO is best\n";
+        cout << "FIFO (Minimum Page Faults)\n";
 
     return 0;
 }
